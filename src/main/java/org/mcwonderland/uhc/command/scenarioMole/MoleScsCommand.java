@@ -4,7 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.mcwonderland.uhc.command.CommandHelper;
 import org.mcwonderland.uhc.game.player.UHCPlayer;
-import org.mcwonderland.uhc.scenario.impl.special.ScenarioMole;
+import org.mcwonderland.uhc.scenario.impl.special.mole.ScenarioMole;
 import org.mcwonderland.uhc.settings.CommandSettings;
 import org.mcwonderland.uhc.util.Chat;
 import org.mineacademy.fo.command.SimpleCommandGroup;

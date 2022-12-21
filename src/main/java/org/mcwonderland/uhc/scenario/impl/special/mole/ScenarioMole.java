@@ -1,5 +1,6 @@
-package org.mcwonderland.uhc.scenario.impl.special;
+package org.mcwonderland.uhc.scenario.impl.special.mole;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -10,6 +11,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -21,19 +23,19 @@ import org.mcwonderland.uhc.game.player.UHCPlayer;
 import org.mcwonderland.uhc.scenario.ScenarioName;
 import org.mcwonderland.uhc.scenario.annotation.FilePath;
 import org.mcwonderland.uhc.scenario.impl.ConfigBasedScenario;
+import org.mcwonderland.uhc.scenario.impl.special.mole.commands.MoleChatCommand;
+import org.mcwonderland.uhc.scenario.impl.special.mole.commands.MoleKitCommand;
 import org.mcwonderland.uhc.util.Chat;
 import org.mcwonderland.uhc.util.Extra;
 import org.mineacademy.fo.model.SimpleReplacer;
 import org.mineacademy.fo.model.SimpleSound;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 import static org.bukkit.Material.STONE_SWORD;
 
 public class ScenarioMole extends ConfigBasedScenario implements Listener {
+
 
     //todo
     // mole kit
@@ -83,11 +85,27 @@ public class ScenarioMole extends ConfigBasedScenario implements Listener {
     private Integer moleSpawnSeconds;
 
     private static final Set<UHCPlayer> molePlayers = new HashSet<>();
-
     private static final Set<String> moleNames = new HashSet<>();
+
+    private final Set<UUID> kitSelected = new HashSet<>();
+
+    private MoleCommandHandler commandHandler;
+    private SelectKitMenuListener menuListener;
 
     public ScenarioMole(ScenarioName name) {
         super(name);
+        SelectKitMenu menu = new SelectKitMenu();
+
+        commandHandler = new MoleCommandHandler(Lists.newArrayList(
+                new MoleChatCommand(this),
+                new MoleKitCommand(this, menu))
+        );
+        menuListener = new SelectKitMenuListener(menu, this);
+    }
+
+    @Override
+    protected Collection<Listener> initListeners() {
+        return Lists.newArrayList(menuListener);
     }
 
     @Override
@@ -122,6 +140,11 @@ public class ScenarioMole extends ConfigBasedScenario implements Listener {
         }
     }
 
+    @EventHandler
+    public void handleMoleCommands(PlayerCommandPreprocessEvent e) {
+        commandHandler.handle(e.getPlayer(), e.getMessage());
+    }
+
     public void doMoleSpawn() {
         for (UHCTeam team : UHCTeam.getAliveTeams()) {
             Object[] teamPlayers = team.getAlivePlayers().toArray();
@@ -129,7 +152,7 @@ public class ScenarioMole extends ConfigBasedScenario implements Listener {
             Random rndm = new Random();
             int rndmNumber = rndm.nextInt(team.getPlayersAmount());
 
-            molePlayers.add(UHCPlayer.getUHCPlayer((Player) teamPlayers[rndmNumber]));
+            molePlayers.add(UHCPlayer.getUHCPlayer(( Player ) teamPlayers[rndmNumber]));
         }
     }
 
@@ -178,7 +201,7 @@ public class ScenarioMole extends ConfigBasedScenario implements Listener {
             Random rndm = new Random();
             int rndmNumber = rndm.nextInt(team.getPlayersAmount());
 
-            UHCPlayer uhcPlayer = UHCPlayer.getUHCPlayer((Player) teamPlayers[rndmNumber]);
+            UHCPlayer uhcPlayer = UHCPlayer.getUHCPlayer(( Player ) teamPlayers[rndmNumber]);
             Player player = uhcPlayer.getPlayer();
             player.getInventory().addItem(sword);
             Chat.send(player, swordReceiverMessage);
@@ -194,7 +217,7 @@ public class ScenarioMole extends ConfigBasedScenario implements Listener {
         UHCPlayer UHCDamageTaker = event.getUhcPlayer();
 
         if (damager instanceof Player) {
-            Player damagerPlayer = (Player) damager;
+            Player damagerPlayer = ( Player ) damager;
 
             UHCPlayer UHCDamager = UHCPlayer.getUHCPlayer(damagerPlayer);
 
@@ -239,7 +262,7 @@ public class ScenarioMole extends ConfigBasedScenario implements Listener {
             case "1.12":
             case "1.12.1":
             case "1.12.2":
-                item.setDurability((short) 0);
+                item.setDurability(( short ) 0);
                 break;
             case "1.13":
             case "1.13.1":
@@ -257,15 +280,21 @@ public class ScenarioMole extends ConfigBasedScenario implements Listener {
             case "1.16.3":
             case "1.16.4":
             case "1.16.5":
-                Damageable itemMetaDamage = (Damageable) itemMeta;
-                itemMetaDamage.setDamage((int) STONE_SWORD.getMaxDurability());
+                Damageable itemMetaDamage = ( Damageable ) itemMeta;
+                itemMetaDamage.setDamage(( int ) STONE_SWORD.getMaxDurability());
                 break;
         }
         item.setItemMeta(itemMeta);
 
     }
 
+    public boolean isKitSelected(Player player) {
+        return this.kitSelected.contains(player.getUniqueId());
+    }
 
+    public void markKitSelected(Player player) {
+        this.kitSelected.add(player.getUniqueId());
+    }
 }
 
 

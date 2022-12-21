@@ -9,7 +9,6 @@ public class MoleCommandGroup extends SimpleCommandGroup {
 
     @Override
     protected void registerSubcommands() {
-        registerSubcommand(new MoleChatCommand(this, "chat"));
         registerSubcommand(new MoleKitCommand(this, "kit"));
         registerSubcommand(new MoleListCommand(this, "list"));
         registerSubcommand(new MoleScsCommand(this, "scs"));
