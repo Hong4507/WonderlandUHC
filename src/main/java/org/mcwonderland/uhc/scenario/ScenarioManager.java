@@ -20,6 +20,7 @@ import org.mcwonderland.uhc.scenario.impl.rush.ScenarioCutClean;
 import org.mcwonderland.uhc.scenario.impl.rush.ScenarioFastSmelting;
 import org.mcwonderland.uhc.scenario.impl.rush.ScenarioHastyBoys;
 import org.mcwonderland.uhc.scenario.impl.special.*;
+import org.mcwonderland.uhc.scenario.impl.special.mole.ScenarioMole;
 
 import java.util.Collection;
 import java.util.HashMap;

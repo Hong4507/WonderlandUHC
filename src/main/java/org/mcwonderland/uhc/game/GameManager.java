@@ -9,7 +9,7 @@ import org.mcwonderland.uhc.game.player.UHCPlayer;
 import org.mcwonderland.uhc.game.player.UHCPlayers;
 import org.mcwonderland.uhc.game.settings.CacheSaver;
 import org.mcwonderland.uhc.model.freeze.FreezeMode;
-import org.mcwonderland.uhc.scenario.impl.special.ScenarioMole;
+import org.mcwonderland.uhc.scenario.impl.special.mole.ScenarioMole;
 import org.mcwonderland.uhc.settings.Messages;
 import org.mcwonderland.uhc.settings.Settings;
 import org.mcwonderland.uhc.settings.Sounds;
@@ -81,6 +81,7 @@ public class GameManager {
         Set<UHCPlayer> molePlayers = ScenarioMole.getMoleList();
 
         HashSet<UHCPlayer> players = new HashSet<>();
+
         for (UHCTeam team : UHCTeam.getAliveTeams()) {
             players.addAll(team.getAlives());
         }
@@ -119,7 +120,7 @@ public class GameManager {
             String s = list.get(i);
             if (s.contains("{players}")) {
                 list.remove(s);
-                for (String name : UHCPlayers.toNames(ScenarioMole.getMoleList())) {
+                for (String name : ScenarioMole.getMoleNames()) {
                     list.add(i, s.replace("{players}", name));
                 }
             }

@@ -21,7 +21,6 @@ import org.mcwonderland.uhc.command.impl.game.SpecToggleCommand;
 import org.mcwonderland.uhc.command.impl.host.*;
 import org.mcwonderland.uhc.command.impl.host.whitelist.WhitelistCommandGroup;
 import org.mcwonderland.uhc.command.impl.info.*;
-import org.mcwonderland.uhc.command.scenarioMole.MoleCommandGroup;
 import org.mcwonderland.uhc.command.team.TeamCommandGroup;
 import org.mcwonderland.uhc.command.uhc.UHCMainCommandGroup;
 import org.mcwonderland.uhc.game.Game;
@@ -235,7 +234,6 @@ public class WonderlandUHC extends SimplePlugin {
                 new WorldInitListener(),
                 new ScoreListener(),
                 new ScenarioListener(this)
-//                new MoleKitCommand(new MoleCommandGroup("mole"), "kit")
         ).forEach(this::registerEvents);
     }
 
@@ -271,7 +269,6 @@ public class WonderlandUHC extends SimplePlugin {
         registerCommands(new UHCMainCommandGroup("uhc"));
         registerCommands(new TeamCommandGroup("team"));
         registerCommands(new WhitelistCommandGroup("whitelist|wl"));
-        registerCommands(new MoleCommandGroup("mole"));
     }
 
     private void logPluginEnabledMessage() {

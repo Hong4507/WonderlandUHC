@@ -1,5 +1,6 @@
-package org.mcwonderland.uhc.scenario.impl.special;
+package org.mcwonderland.uhc.scenario.impl.special.mole;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -10,8 +11,8 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.mcwonderland.uhc.api.enums.RoleName;
 import org.mcwonderland.uhc.api.event.player.UHCPlayerDamageByEntityEvent;
@@ -21,22 +22,20 @@ import org.mcwonderland.uhc.game.player.UHCPlayer;
 import org.mcwonderland.uhc.scenario.ScenarioName;
 import org.mcwonderland.uhc.scenario.annotation.FilePath;
 import org.mcwonderland.uhc.scenario.impl.ConfigBasedScenario;
+import org.mcwonderland.uhc.scenario.impl.special.mole.commands.MoleChatCommand;
+import org.mcwonderland.uhc.scenario.impl.special.mole.commands.MoleKitCommand;
+import org.mcwonderland.uhc.scenario.impl.special.mole.commands.MoleListCommand;
+import org.mcwonderland.uhc.scenario.impl.special.mole.commands.MoleScsCommand;
 import org.mcwonderland.uhc.util.Chat;
 import org.mcwonderland.uhc.util.Extra;
 import org.mineacademy.fo.model.SimpleReplacer;
 import org.mineacademy.fo.model.SimpleSound;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 import static org.bukkit.Material.STONE_SWORD;
 
 public class ScenarioMole extends ConfigBasedScenario implements Listener {
-
-    //todo
-    // mole kit
 
     @FilePath(name = "Mole_Spawn_Minutes")
     private Integer moleSpawnMinutes;
@@ -83,11 +82,29 @@ public class ScenarioMole extends ConfigBasedScenario implements Listener {
     private Integer moleSpawnSeconds;
 
     private static final Set<UHCPlayer> molePlayers = new HashSet<>();
-
     private static final Set<String> moleNames = new HashSet<>();
+
+    private final Set<UUID> kitSelected = new HashSet<>();
+
+    private final MoleCommandHandler commandHandler;
+    private final SelectKitMenuListener menuListener;
 
     public ScenarioMole(ScenarioName name) {
         super(name);
+        SelectKitMenu menu = new SelectKitMenu();
+
+        commandHandler = new MoleCommandHandler(Lists.newArrayList(
+                new MoleChatCommand(this),
+                new MoleKitCommand(this, menu),
+                new MoleScsCommand(this),
+                new MoleListCommand(this))
+        );
+        menuListener = new SelectKitMenuListener(menu, this);
+    }
+
+    @Override
+    protected Collection<Listener> initListeners() {
+        return Lists.newArrayList(menuListener);
     }
 
     @Override
@@ -122,6 +139,13 @@ public class ScenarioMole extends ConfigBasedScenario implements Listener {
         }
     }
 
+    @EventHandler
+    public void handleMoleCommands(PlayerCommandPreprocessEvent event) {
+        commandHandler.handle(event.getPlayer(), event.getMessage());
+        if (commandHandler.isExecuted())
+            event.setCancelled(true);
+    }
+
     public void doMoleSpawn() {
         for (UHCTeam team : UHCTeam.getAliveTeams()) {
             Object[] teamPlayers = team.getAlivePlayers().toArray();
@@ -145,6 +169,10 @@ public class ScenarioMole extends ConfigBasedScenario implements Listener {
 
     public static Set<UHCPlayer> getMoleList() {
         return Sets.newHashSet(molePlayers);
+    }
+
+    public static boolean isMole(UHCPlayer uhcPlayer) {
+        return getMoleList().contains(uhcPlayer);
     }
 
     public static Set<String> getMoleNames() {
@@ -183,7 +211,7 @@ public class ScenarioMole extends ConfigBasedScenario implements Listener {
             player.getInventory().addItem(sword);
             Chat.send(player, swordReceiverMessage);
 
-            if (getMoleList().contains(uhcPlayer))
+            if (isMole(uhcPlayer))
                 return;
         }
     }
@@ -203,69 +231,58 @@ public class ScenarioMole extends ConfigBasedScenario implements Listener {
 
             String version = Bukkit.getBukkitVersion().split("-")[0];
 
-            ItemStack item = UHCDamager.getPlayer().getInventory().getItemInHand();
+            ItemStack item;
+
+            switch (version) {
+                case "1.8.8":
+                    item = UHCDamager.getPlayer().getInventory().getItemInHand();
+                    break;
+                default:
+                    item = UHCDamager.getPlayer().getInventory().getItemInMainHand();
+            }
+
             ItemMeta itemMeta = item.getItemMeta();
 
             if (itemMeta != null) {
                 // 這個判斷式真的不太好
                 if (itemMeta.getDisplayName().equals(ChatColor.RED + "懲戒之劍")) {
-                    if (getMoleList().contains(UHCDamageTaker)
+                    if (isMole(UHCDamageTaker)
                             && UHCDamageTaker.getRoleName() == RoleName.PLAYER) {
                         world.strikeLightning(location);
-                        breakSword(version, item, itemMeta);
+                        switch (version) {
+                            case "1.8.8":
+                                UHCDamager.getPlayer().getInventory().setItemInHand(null);
+                                break;
+                            default:
+                                UHCDamager.getPlayer().getInventory().setItemInMainHand(null);
+                        }
                         Chat.broadcast(moleExposedMessage.replace("{player}", UHCDamageTaker.getName()));
                     } else if (UHCDamageTaker.getRoleName() == RoleName.PLAYER) {
                         UHCDamager.getPlayer().damage(UHCDamager.getPlayer().getHealthScale());
-                        breakSword(version, item, itemMeta);
+                        switch (version) {
+                            case "1.8.8":
+                                UHCDamager.getPlayer().getInventory().setItemInHand(null);
+                                break;
+                            default:
+                                UHCDamager.getPlayer().getInventory().setItemInMainHand(null);
+                        }
                         Chat.send(UHCDamager.getPlayer(), swordMisdamageMessage);
                     }
+                } else {
+                    return;
                 }
             }
         }
 
     }
 
-    private void breakSword(String version, ItemStack item, ItemMeta itemMeta) {
-        // 這樣寫也真的不太好，但目前沒想到有其他方法可以支援多版本
-        switch (version) {
-            case "1.8.8":
-            case "1.9":
-            case "1.9.2":
-            case "1.9.4":
-            case "1.10":
-            case "1.10.2":
-            case "1.11":
-            case "1.11.2":
-            case "1.12":
-            case "1.12.1":
-            case "1.12.2":
-                item.setDurability((short) 0);
-                break;
-            case "1.13":
-            case "1.13.1":
-            case "1.13.2":
-            case "1.14":
-            case "1.14.1":
-            case "1.14.2":
-            case "1.14.3":
-            case "1.14.4":
-            case "1.15":
-            case "1.15.1":
-            case "1.15.2":
-            case "1.16.1":
-            case "1.16.2":
-            case "1.16.3":
-            case "1.16.4":
-            case "1.16.5":
-                Damageable itemMetaDamage = (Damageable) itemMeta;
-                itemMetaDamage.setDamage((int) STONE_SWORD.getMaxDurability());
-                break;
-        }
-        item.setItemMeta(itemMeta);
-
+    public boolean isKitSelected(Player player) {
+        return this.kitSelected.contains(player.getUniqueId());
     }
 
-
+    public void markKitSelected(Player player) {
+        this.kitSelected.add(player.getUniqueId());
+    }
 }
 
 
