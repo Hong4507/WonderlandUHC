@@ -77,6 +77,8 @@ public class SelectKitMenuListener implements Listener {
 
             mole.markKitSelected(player);
             player.closeInventory();
+        } else {
+            return;
         }
     }
 
